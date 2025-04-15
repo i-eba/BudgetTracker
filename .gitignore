@@ -1,0 +1,16 @@
+# Ignore Gradle and build outputs
+.gradle/
+build/
+
+# Android Studio
+.idea/
+*.iml
+
+# Local properties (contains sensitive paths)
+local.properties
+
+# OS generated files
+.DS_Store
+
+# Kotlin/Java class files
+*.class
