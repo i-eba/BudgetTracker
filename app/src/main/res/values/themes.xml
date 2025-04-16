@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.BudgetTracker" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.BudgetTracker" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/green_40</item>
+        <item name="colorPrimaryVariant">@color/green_80</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/green_grey_40</item>
+        <item name="colorSecondaryVariant">@color/green_grey_80</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
 </resources>

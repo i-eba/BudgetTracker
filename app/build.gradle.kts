@@ -1,7 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
+    kotlin("kapt")
 }
 
 android {
@@ -35,25 +36,57 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
-        compose = true
+        compose = false
+        viewBinding = true
     }
 }
 
 dependencies {
-
+    // Core Android libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    
+    // Replace Compose with standard Android libraries
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    
+    // Firebase dependencies
+    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    
+    // Room for local database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+    
+    // MPAndroidChart for visualizations
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    
+    // CSV Export
+    implementation("org.apache.commons:commons-csv:1.10.0")
+    
+    // Material components
+    implementation("com.google.android.material:material:1.11.0")
+    
+    // ViewModel & LiveData
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    
+    // Navigation component
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.6")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.6")
+    
+    // Date picker
+    implementation("com.google.android.material:material:1.11.0")
+    
+    // ViewPager2 for tab navigation
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
+    
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 }
