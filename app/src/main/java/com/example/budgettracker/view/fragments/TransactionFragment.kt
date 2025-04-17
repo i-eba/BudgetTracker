@@ -32,6 +32,17 @@ class TransactionFragment : Fragment() {
         7L to "Others"
     )
     
+    // Reverse mapping for getting categoryId from name
+    private val reverseCategoryMap = mapOf(
+        "Food" to 1L,
+        "Transportation" to 2L,
+        "Housing" to 3L,
+        "Entertainment" to 4L,
+        "Utilities" to 5L,
+        "Healthcare" to 6L,
+        "Others" to 7L
+    )
+    
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -50,12 +61,43 @@ class TransactionFragment : Fragment() {
     
     private fun setupRecyclerView() {
         transactionAdapter = TransactionAdapter(emptyList()) { transaction ->
-            // Handle transaction click - could navigate to details/edit view
+            // Handle transaction click - navigate to edit view
+            openEditTransactionScreen(transaction)
         }
         
         binding.rvTransactions.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = transactionAdapter
+        }
+    }
+    
+    private fun openEditTransactionScreen(transaction: Transaction) {
+        // Find the corresponding database transaction
+        presenter.allTransactions.value?.find { it.id.toString() == transaction.id }?.let { dbTransaction ->
+            val addTransactionFragment = AddTransactionFragment.newInstanceForEdit(presenter, dbTransaction)
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, addTransactionFragment)
+                .addToBackStack(null)
+                .commit()
+        } ?: run {
+            // If we can't find the exact transaction in the database, create a new model from UI data
+            val categoryId = reverseCategoryMap[transaction.category] ?: 7L
+            
+            val dbTransaction = com.example.budgettracker.data.local.entities.Transaction(
+                id = transaction.id.toLongOrNull() ?: 0,
+                amount = transaction.amount,
+                description = transaction.name,
+                date = transaction.date,
+                categoryId = categoryId,
+                isIncome = !transaction.isExpense,
+                userId = presenter.getCurrentUserId()
+            )
+            
+            val addTransactionFragment = AddTransactionFragment.newInstanceForEdit(presenter, dbTransaction)
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, addTransactionFragment)
+                .addToBackStack(null)
+                .commit()
         }
     }
     

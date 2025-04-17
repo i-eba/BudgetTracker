@@ -18,6 +18,11 @@ class TransactionPresenter(
     private val userId: String
         get() = authManager.getCurrentUserId() ?: ""
     
+    // Public method to get user ID
+    fun getCurrentUserId(): String {
+        return userId
+    }
+    
     // Transactions
     val allTransactions: LiveData<List<Transaction>> = repository.getAllTransactions()
     val totalExpenses: LiveData<Double> = repository.getTotalExpenses()

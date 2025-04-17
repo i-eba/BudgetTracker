@@ -137,5 +137,15 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/btnSave"
         app:layout_constraintTop_toTopOf="@id/btnSave" />
+        
+    <Button
+        android:id="@+id/btnDelete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Delete Transaction"
+        android:backgroundTint="#F44336"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/btnSave" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
