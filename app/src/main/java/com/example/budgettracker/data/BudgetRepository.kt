@@ -1,5 +1,6 @@
 package com.example.budgettracker.data
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import com.example.budgettracker.data.local.AppDatabase
 import com.example.budgettracker.data.local.entities.Budget
@@ -225,25 +226,30 @@ class BudgetRepository(
     fun syncData() {
         currentUserId?.let { userId ->
             CoroutineScope(Dispatchers.IO).launch {
-                // Sync transactions
-                val transactions = firestoreManager.getTransactions(userId)
-                transactions.forEach { transaction ->
-                    database.transactionDao().insert(transaction)
-                }
-                
-                // Sync budgets
-                val calendar = Calendar.getInstance()
-                val month = calendar.get(Calendar.MONTH) + 1
-                val year = calendar.get(Calendar.YEAR)
-                val budgets = firestoreManager.getBudgets(userId, month, year)
-                budgets.forEach { budget ->
-                    database.budgetDao().insert(budget)
-                }
-                
-                // Sync categories
-                val categories = firestoreManager.getCategories(userId)
-                categories.forEach { category ->
-                    database.categoryDao().insert(category)
+                try {
+                    // Sync transactions
+                    val transactions = firestoreManager.getTransactions(userId)
+                    transactions.forEach { transaction ->
+                        database.transactionDao().insert(transaction)
+                    }
+                    
+                    // Sync budgets
+                    val calendar = Calendar.getInstance()
+                    val month = calendar.get(Calendar.MONTH) + 1
+                    val year = calendar.get(Calendar.YEAR)
+                    val budgets = firestoreManager.getBudgets(userId, month, year)
+                    budgets.forEach { budget ->
+                        database.budgetDao().insert(budget)
+                    }
+                    
+                    // Sync categories
+                    val categories = firestoreManager.getCategories(userId)
+                    categories.forEach { category ->
+                        database.categoryDao().insert(category)
+                    }
+                } catch (e: Exception) {
+                    // Log the error but don't crash the app
+                    Log.e("BudgetRepository", "Error syncing data: ${e.message}")
                 }
             }
         }

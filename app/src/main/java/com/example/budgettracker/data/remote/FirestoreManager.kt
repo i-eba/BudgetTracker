@@ -98,6 +98,7 @@ class FirestoreManager {
             .whereEqualTo("userId", userId)
             .whereEqualTo("month", month)
             .whereEqualTo("year", year)
+            .orderBy("__name__")
             .get()
             .await()
             .documents
@@ -145,6 +146,7 @@ class FirestoreManager {
     suspend fun getCategories(userId: String): List<Category> {
         return categoriesCollection
             .whereEqualTo("userId", userId)
+            .orderBy("__name__")
             .get()
             .await()
             .documents
