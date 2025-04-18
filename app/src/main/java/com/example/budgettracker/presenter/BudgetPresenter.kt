@@ -5,6 +5,7 @@ import androidx.lifecycle.MediatorLiveData
 import com.example.budgettracker.data.BudgetRepository
 import com.example.budgettracker.data.local.entities.Budget
 import com.example.budgettracker.data.local.entities.Category
+import com.example.budgettracker.data.local.entities.Transaction
 import com.example.budgettracker.data.remote.FirebaseAuthManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,9 @@ class BudgetPresenter(
     // Categories
     val allCategories: LiveData<List<Category>> = repository.getAllCategories()
     
+    // Transactions
+    val allTransactions: LiveData<List<Transaction>> = repository.getAllTransactions()
+    
     // Budget progress for all categories
     private val _budgetProgress = MediatorLiveData<Map<Long, Pair<Double, Double>>>() // CategoryId -> (Spent, Budget)
     val budgetProgress: LiveData<Map<Long, Pair<Double, Double>>> = _budgetProgress
@@ -40,6 +44,12 @@ class BudgetPresenter(
         }
         
         _budgetProgress.addSource(allCategories) { categories ->
+            val budgets = currentMonthBudgets.value ?: listOf()
+            updateBudgetProgress(budgets)
+        }
+        
+        // Update budget progress when transactions change
+        _budgetProgress.addSource(allTransactions) { _ ->
             val budgets = currentMonthBudgets.value ?: listOf()
             updateBudgetProgress(budgets)
         }
@@ -64,6 +74,11 @@ class BudgetPresenter(
     
     fun getCategorySpendingForCurrentMonth(categoryId: Long): LiveData<Double> {
         return repository.getCategoryExpenseForCurrentMonth(categoryId)
+    }
+    
+    fun getCategoryExpenseForCurrentMonth(categoryId: Long): Double {
+        // This method is used to directly get the current value
+        return repository.getCategoryExpenseForCurrentMonth(categoryId).value ?: 0.0
     }
     
     fun addBudget(amount: Double, categoryId: Long) {
