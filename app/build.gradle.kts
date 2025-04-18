@@ -51,8 +51,10 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     
-    // Firebase dependencies
-    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+    
+    // Firebase dependencies - When using the BoM, don't specify versions
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     

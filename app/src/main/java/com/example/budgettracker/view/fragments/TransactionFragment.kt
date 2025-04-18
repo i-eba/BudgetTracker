@@ -29,7 +29,8 @@ class TransactionFragment : Fragment() {
         4L to "Entertainment",
         5L to "Utilities", 
         6L to "Healthcare",
-        7L to "Others"
+        7L to "Others",
+        8L to "Paycheck"
     )
     
     // Reverse mapping for getting categoryId from name
@@ -40,7 +41,8 @@ class TransactionFragment : Fragment() {
         "Entertainment" to 4L,
         "Utilities" to 5L,
         "Healthcare" to 6L,
-        "Others" to 7L
+        "Others" to 7L,
+        "Paycheck" to 8L
     )
     
     override fun onCreateView(

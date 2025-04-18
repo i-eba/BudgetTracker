@@ -43,6 +43,7 @@ class FirestoreManager {
         return transactionsCollection
             .whereEqualTo("userId", userId)
             .orderBy("date", Query.Direction.DESCENDING)
+            .orderBy("__name__", Query.Direction.DESCENDING)
             .get()
             .await()
             .documents

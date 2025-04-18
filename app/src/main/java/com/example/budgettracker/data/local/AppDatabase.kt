@@ -56,6 +56,7 @@ abstract class AppDatabase : RoomDatabase() {
                                     Category(name = "Education", color = 0xFF3F51B5.toInt()),
                                     Category(name = "Shopping", color = 0xFF00BCD4.toInt()),
                                     Category(name = "Salary", color = 0xFF009688.toInt()),
+                                    Category(name = "Paycheck", color = 0xFF8BC34A.toInt()),
                                     Category(name = "Other", color = 0xFF607D8B.toInt())
                                 )
                                 categoryDao.insertAll(defaultCategories)

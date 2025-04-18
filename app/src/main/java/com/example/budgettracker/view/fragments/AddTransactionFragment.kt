@@ -39,6 +39,7 @@ class AddTransactionFragment : Fragment() {
         "Entertainment" to 4L,
         "Utilities" to 5L,
         "Healthcare" to 6L,
+        "Paycheck" to 8L,
         "Others" to 7L
     )
     
@@ -50,7 +51,8 @@ class AddTransactionFragment : Fragment() {
         4L to "Entertainment",
         5L to "Utilities", 
         6L to "Healthcare",
-        7L to "Others"
+        7L to "Others",
+        8L to "Paycheck"
     )
 
     override fun onCreateView(
@@ -75,6 +77,7 @@ class AddTransactionFragment : Fragment() {
         setupSaveButton()
         setupCancelButton()
         setupDeleteButton()
+        setupIncomeExpenseToggle()
         
         // If in edit mode, populate the fields with existing transaction data
         if (isEditMode && transactionToEdit != null) {
@@ -251,6 +254,40 @@ class AddTransactionFragment : Fragment() {
         }
         
         requireActivity().supportFragmentManager.popBackStack()
+    }
+    
+    private fun setupIncomeExpenseToggle() {
+        // Set initial states
+        updateToggleStyles(binding.switchType.isChecked)
+        
+        // Set listener for toggle changes
+        binding.switchType.setOnCheckedChangeListener { _, isChecked ->
+            updateToggleStyles(isChecked)
+        }
+    }
+    
+    private fun updateToggleStyles(isIncome: Boolean) {
+        if (isIncome) {
+            // Toggle ON - left side should be green
+            binding.tvExpense.apply {
+                setTextColor(resources.getColor(android.R.color.holo_green_dark, null))
+                setTypeface(null, android.graphics.Typeface.BOLD)
+            }
+            binding.tvIncome.apply {
+                setTextColor(resources.getColor(android.R.color.darker_gray, null))
+                setTypeface(null, android.graphics.Typeface.NORMAL)
+            }
+        } else {
+            // Toggle OFF - right side should be green
+            binding.tvIncome.apply {
+                setTextColor(resources.getColor(android.R.color.holo_green_dark, null))
+                setTypeface(null, android.graphics.Typeface.BOLD)
+            }
+            binding.tvExpense.apply {
+                setTextColor(resources.getColor(android.R.color.darker_gray, null))
+                setTypeface(null, android.graphics.Typeface.NORMAL)
+            }
+        }
     }
     
     override fun onDestroyView() {
