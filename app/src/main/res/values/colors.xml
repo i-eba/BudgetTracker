@@ -18,4 +18,5 @@
     <color name="success_green">#FF00C853</color>
     <color name="progress_green_80">#FF66BB6A</color>
     <color name="progress_red">#FFEF5350</color>
+    <color name="colorPrimary">#FF4CAF50</color>
 </resources>

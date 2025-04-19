@@ -13,6 +13,6 @@
         <item name="colorOnSecondary">@android:color/black</item>
         
         <!-- Status bar color -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor">@color/green_40</item>
     </style>
 </resources>

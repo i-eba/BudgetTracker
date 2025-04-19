@@ -40,31 +40,55 @@ class FirestoreManager {
     }
     
     suspend fun getTransactions(userId: String): List<Transaction> {
-        return transactionsCollection
-            .whereEqualTo("userId", userId)
-            .orderBy("date", Query.Direction.DESCENDING)
-            .orderBy("__name__", Query.Direction.DESCENDING)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { doc ->
-                val id = doc.getLong("id") ?: 0
-                val amount = doc.getDouble("amount") ?: 0.0
-                val description = doc.getString("description") ?: ""
-                val date = doc.getDate("date") ?: Date()
-                val categoryId = doc.getLong("categoryId") ?: 0
-                val isIncome = doc.getBoolean("isIncome") ?: false
-                
-                Transaction(
-                    id = id,
-                    amount = amount,
-                    description = description,
-                    date = date,
-                    categoryId = categoryId,
-                    isIncome = isIncome,
-                    userId = userId
-                )
+        return try {
+            val querySnapshot = transactionsCollection
+                .whereEqualTo("userId", userId)
+                .orderBy("date", Query.Direction.DESCENDING)
+                .orderBy("__name__")
+                .get()
+                .await()
+            
+            querySnapshot.documents.mapNotNull { doc ->
+                try {
+                    // First, try to use the id field from the document
+                    var id = doc.getLong("id") ?: 0L
+                    
+                    // If id is 0, try to use the document ID (it might be stored as the Firestore doc ID)
+                    if (id == 0L) {
+                        // Try to convert the document ID to Long if it's numeric
+                        try {
+                            id = doc.id.toLongOrNull() ?: 0L
+                        } catch (e: NumberFormatException) {
+                            // If document ID is not numeric, keep id as 0
+                        }
+                    }
+                    
+                    val amount = doc.getDouble("amount") ?: 0.0
+                    val description = doc.getString("description") ?: ""
+                    val date = doc.getDate("date") ?: Date()
+                    val categoryId = doc.getLong("categoryId") ?: 0L
+                    val isIncome = doc.getBoolean("isIncome") ?: false
+                    
+                    Transaction(
+                        id = id,
+                        amount = amount,
+                        description = description,
+                        date = date,
+                        categoryId = categoryId,
+                        isIncome = isIncome,
+                        userId = userId
+                    ).also {
+                        println("Retrieved transaction: $it")
+                    }
+                } catch (e: Exception) {
+                    println("Error mapping document to transaction: ${e.message}")
+                    null
+                }
             }
+        } catch (e: Exception) {
+            println("Error fetching transactions: ${e.message}")
+            emptyList()
+        }
     }
     
     suspend fun deleteTransaction(transactionId: String) {

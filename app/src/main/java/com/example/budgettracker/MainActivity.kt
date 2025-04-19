@@ -41,7 +41,12 @@ class MainActivity : AppCompatActivity() {
         authManager = FirebaseAuthManager()
         val firestoreManager = FirestoreManager()
         val database = AppDatabase.getDatabase(this)
+        
+        // Initialize repository
         repository = BudgetRepository(database, firestoreManager, authManager)
+        
+        // Ensure default categories are created
+        repository.ensureDefaultCategories()
         
         // Initialize presenters
         authPresenter = AuthPresenter(authManager, repository)
@@ -57,6 +62,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
         
+        // Sync data from Firestore
+        syncDataFromFirestore()
+        
         setupBottomNavigation()
         
         // Set default fragment
@@ -66,6 +74,13 @@ class MainActivity : AppCompatActivity() {
                 add(R.id.fragment_container, TransactionFragment.newInstance(transactionPresenter))
             }
         }
+    }
+    
+    private fun syncDataFromFirestore() {
+        // Show syncing indicator if needed
+        
+        // Sync data from Firestore to local database
+        repository.syncData()
     }
     
     private fun setupBottomNavigation() {

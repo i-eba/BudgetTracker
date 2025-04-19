@@ -58,3 +58,9 @@ The app follows the MVP (Model-View-Presenter) architecture pattern:
 
 - This app was created as a learning project.
 - Icons are from Google's Material Design icon set
+
+Retrieved transaction: Transaction(id=19, amount=200.0, description=Fun, date=Fri Apr 18 16:17:33 PDT 2025, categoryId=4, isIncome=false, userId=ZpHyEgoEz7PABM7o4f2AeXJytyx2)
+Retrieved transaction: Transaction(id=18, amount=3400.0, description=Payme, date=Fri Apr 18 14:36:18 PDT 2025, categoryId=8, isIncome=true, userId=ZpHyEgoEz7PABM7o4f2AeXJytyx2)
+
+ReportPresenter: Calculating spending for 0 expense transactions out of 0 total
+ReportPresenter: No real spending data, creating sample data from categories

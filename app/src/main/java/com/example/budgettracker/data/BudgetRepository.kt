@@ -14,11 +14,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class BudgetRepository(
     private val database: AppDatabase,
-    private val firestoreManager: FirestoreManager,
-    private val authManager: FirebaseAuthManager
+    private val firestoreManager: FirestoreManager = FirestoreManager(),
+    private val authManager: FirebaseAuthManager = FirebaseAuthManager()
 ) {
     // Get current user ID
     private val currentUserId: String?
@@ -59,13 +61,19 @@ class BudgetRepository(
     }
     
     fun getAllTransactions(): LiveData<List<Transaction>> {
-        return currentUserId?.let {
+        val userId = currentUserId
+        Log.d("BudgetRepository", "Getting all transactions for userId: $userId")
+        return userId?.let {
             database.transactionDao().getAllTransactions(it)
         } ?: database.transactionDao().getAllTransactions("")
     }
     
     fun getTransactionsByDateRange(startDate: Date, endDate: Date): LiveData<List<Transaction>> {
-        return currentUserId?.let {
+        val userId = currentUserId
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        Log.d("BudgetRepository", "Getting transactions by date range for userId: $userId, " +
+              "startDate: ${dateFormat.format(startDate)}, endDate: ${dateFormat.format(endDate)}")
+        return userId?.let {
             database.transactionDao().getTransactionsByDateRange(it, startDate, endDate)
         } ?: database.transactionDao().getTransactionsByDateRange("", startDate, endDate)
     }
@@ -227,10 +235,32 @@ class BudgetRepository(
         currentUserId?.let { userId ->
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    Log.d("BudgetRepository", "Starting data sync for user: $userId")
+                    
                     // Sync transactions
                     val transactions = firestoreManager.getTransactions(userId)
-                    transactions.forEach { transaction ->
-                        database.transactionDao().insert(transaction)
+                    Log.d("BudgetRepository", "Fetched ${transactions.size} transactions from Firestore")
+                    
+                    if (transactions.isNotEmpty()) {
+                        // Insert or update each transaction in the local database
+                        transactions.forEach { transaction ->
+                            try {
+                                // Check if transaction already exists
+                                val existingTransaction = database.transactionDao().getTransactionById(transaction.id)
+                                
+                                if (existingTransaction == null) {
+                                    // If not exists, insert
+                                    database.transactionDao().insert(transaction)
+                                    Log.d("BudgetRepository", "Inserted transaction: ${transaction.id}")
+                                } else {
+                                    // If exists, update
+                                    database.transactionDao().update(transaction)
+                                    Log.d("BudgetRepository", "Updated transaction: ${transaction.id}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("BudgetRepository", "Error saving transaction ${transaction.id}: ${e.message}")
+                            }
+                        }
                     }
                     
                     // Sync budgets
@@ -238,18 +268,75 @@ class BudgetRepository(
                     val month = calendar.get(Calendar.MONTH) + 1
                     val year = calendar.get(Calendar.YEAR)
                     val budgets = firestoreManager.getBudgets(userId, month, year)
+                    Log.d("BudgetRepository", "Fetched ${budgets.size} budgets from Firestore")
+                    
                     budgets.forEach { budget ->
-                        database.budgetDao().insert(budget)
+                        try {
+                            database.budgetDao().insert(budget)
+                        } catch (e: Exception) {
+                            Log.e("BudgetRepository", "Error saving budget ${budget.id}: ${e.message}")
+                        }
                     }
                     
                     // Sync categories
                     val categories = firestoreManager.getCategories(userId)
+                    Log.d("BudgetRepository", "Fetched ${categories.size} categories from Firestore")
+                    
                     categories.forEach { category ->
-                        database.categoryDao().insert(category)
+                        try {
+                            database.categoryDao().insert(category)
+                        } catch (e: Exception) {
+                            Log.e("BudgetRepository", "Error saving category ${category.id}: ${e.message}")
+                        }
                     }
+                    
+                    Log.d("BudgetRepository", "Data sync completed successfully")
+                    
                 } catch (e: Exception) {
                     // Log the error but don't crash the app
-                    Log.e("BudgetRepository", "Error syncing data: ${e.message}")
+                    Log.e("BudgetRepository", "Error syncing data: ${e.message}", e)
+                }
+            }
+        }
+    }
+
+    fun ensureDefaultCategories() {
+        CoroutineScope(Dispatchers.IO).launch {
+            // Check if categories exist
+            val existingCategories = getAllCategories().value
+            if (existingCategories.isNullOrEmpty()) {
+                Log.d("BudgetRepository", "Creating default categories")
+                
+                // Get current user ID
+                val userId = currentUserId ?: "default_user"
+                
+                // Category colors based on material design palette
+                val categoryColors = mapOf(
+                    1 to android.graphics.Color.parseColor("#558B2F"),  // Food - Dark green
+                    2 to android.graphics.Color.parseColor("#3F51B5"),  // Transportation - Blue
+                    3 to android.graphics.Color.parseColor("#5D4037"),  // Housing - Brown
+                    4 to android.graphics.Color.parseColor("#FFA000"),  // Entertainment - Amber
+                    5 to android.graphics.Color.parseColor("#4CAF50"),  // Utilities - Green
+                    6 to android.graphics.Color.parseColor("#7C4DFF"),  // Healthcare - Deep Purple
+                    7 to android.graphics.Color.parseColor("#8BC34A"),  // Others - Light Green
+                    8 to android.graphics.Color.parseColor("#F44336")   // Paycheck - Red
+                )
+                
+                // Create default categories
+                val defaultCategories = listOf(
+                    Category(1, "Food", categoryColors[1]!!, null, userId),
+                    Category(2, "Transportation", categoryColors[2]!!, null, userId),
+                    Category(3, "Housing", categoryColors[3]!!, null, userId),
+                    Category(4, "Entertainment", categoryColors[4]!!, null, userId),
+                    Category(5, "Utilities", categoryColors[5]!!, null, userId),
+                    Category(6, "Healthcare", categoryColors[6]!!, null, userId),
+                    Category(7, "Others", categoryColors[7]!!, null, userId),
+                    Category(8, "Paycheck", categoryColors[8]!!, null, userId)
+                )
+                
+                // Insert default categories
+                defaultCategories.forEach { category ->
+                    insertCategory(category)
                 }
             }
         }
