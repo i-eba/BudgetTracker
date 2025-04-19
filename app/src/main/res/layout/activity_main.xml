@@ -23,6 +23,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:menu="@menu/bottom_navigation_menu" />
+        app:menu="@menu/bottom_navigation_menu"
+        app:itemIconSize="28dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

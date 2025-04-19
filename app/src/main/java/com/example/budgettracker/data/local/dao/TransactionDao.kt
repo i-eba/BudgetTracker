@@ -44,4 +44,20 @@ interface TransactionDao {
     
     @Query("SELECT SUM(amount) FROM transactions WHERE userId = :userId AND categoryId = :categoryId AND isIncome = 0 AND date BETWEEN :startDate AND :endDate")
     fun getCategoryExpenseForPeriod(userId: String, categoryId: Long, startDate: Date, endDate: Date): LiveData<Double>
+
+    // Synchronous methods that return direct results
+    @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC")
+    suspend fun getAllTransactionsSync(userId: String): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    suspend fun getTransactionsByDateRangeSync(userId: String, startDate: Date, endDate: Date): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND categoryId = :categoryId ORDER BY date DESC")
+    suspend fun getTransactionsByCategorySync(userId: String, categoryId: Long): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND categoryId = :categoryId AND isIncome = :isIncome ORDER BY date DESC")
+    suspend fun getTransactionsByCategoryAndTypeSync(userId: String, categoryId: Long, isIncome: Boolean): List<Transaction>
+
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND isIncome = :isIncome ORDER BY date DESC")
+    suspend fun getTransactionsByTypeSync(userId: String, isIncome: Boolean): List<Transaction>
 } 

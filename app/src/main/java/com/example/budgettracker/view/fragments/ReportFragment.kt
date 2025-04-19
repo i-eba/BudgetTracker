@@ -369,7 +369,10 @@ class ReportFragment : Fragment() {
         // Filter out Paycheck category and keep only categories with amounts > 0
         val filteredCategories = categories
             .filter { it.categoryName != "Paycheck" && it.amount > 0 }
-            .sortedByDescending { it.amount }
+            .sortedWith(compareByDescending<CategoryReportModel> { 
+                // If the category is "Others", give it lowest priority 
+                if (it.categoryName == "Others") -1.0 else it.amount 
+            })
 
         // Calculate total amount for percentage calculation
         val totalAmount = filteredCategories.sumOf { it.amount }
@@ -398,7 +401,7 @@ class ReportFragment : Fragment() {
                 val categoryName = category.categoryName
                 val amount = category.amount
                 val percentageText = String.format("%.1f%%", (amount / totalAmount) * 100)
-                // Use an empty string as label to avoid displaying category names on slices
+                // Keep category name for the legend
                 entries.add(PieEntry(amount.toFloat(), categoryName))
                 
                 // Use either the predefined color from the model or from our palette
@@ -425,6 +428,7 @@ class ReportFragment : Fragment() {
                 this.data = data
                 highlightValues(null)
                 setCenterText("Total\n$${formatCurrency(totalAmount)}")
+                setDrawEntryLabels(false)
                 invalidate()
             }
         } else {

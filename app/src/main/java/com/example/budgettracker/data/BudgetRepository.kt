@@ -341,4 +341,51 @@ class BudgetRepository(
             }
         }
     }
+
+    // Add synchronous methods for direct database access
+    suspend fun getTransactionsByDateRangeSync(startDate: Date, endDate: Date): List<Transaction> {
+        return withContext(Dispatchers.IO) {
+            val userId = currentUserId ?: ""
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            Log.d("BudgetRepository", "Getting transactions by date range SYNC for userId: $userId, " +
+                  "startDate: ${dateFormat.format(startDate)}, endDate: ${dateFormat.format(endDate)}")
+            
+            try {
+                val transactions = database.transactionDao().getTransactionsByDateRangeSync(userId, startDate, endDate)
+                Log.d("BudgetRepository", "Retrieved ${transactions.size} transactions synchronously")
+                transactions
+            } catch (e: Exception) {
+                Log.e("BudgetRepository", "Error getting transactions sync: ${e.message}")
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun getTransactionsByCategoryIdSync(categoryId: Long, isIncome: Boolean): List<Transaction> {
+        return withContext(Dispatchers.IO) {
+            val userId = currentUserId ?: ""
+            try {
+                val transactions = database.transactionDao().getTransactionsByCategoryAndTypeSync(userId, categoryId, isIncome)
+                Log.d("BudgetRepository", "Retrieved ${transactions.size} transactions for category $categoryId, isIncome=$isIncome")
+                transactions
+            } catch (e: Exception) {
+                Log.e("BudgetRepository", "Error getting transactions by category sync: ${e.message}")
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun getAllTransactionsSync(): List<Transaction> {
+        return withContext(Dispatchers.IO) {
+            val userId = currentUserId ?: ""
+            try {
+                val transactions = database.transactionDao().getAllTransactionsSync(userId)
+                Log.d("BudgetRepository", "Retrieved ${transactions.size} transactions synchronously")
+                transactions
+            } catch (e: Exception) {
+                Log.e("BudgetRepository", "Error getting all transactions sync: ${e.message}")
+                emptyList() 
+            }
+        }
+    }
 } 

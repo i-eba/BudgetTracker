@@ -13,6 +13,10 @@ import com.example.budgettracker.data.local.entities.Transaction
 import com.example.budgettracker.model.CategoryReportModel
 import com.example.budgettracker.model.MonthlyReportModel
 import com.example.budgettracker.util.CSVExporter
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +64,10 @@ class ReportPresenter(
     private val _categoryExpenseReport = MutableLiveData<List<CategoryReportModel>>()
     val categoryExpenseReport: LiveData<List<CategoryReportModel>> = _categoryExpenseReport
     
+    // Total spending amount for the current period
+    private val _totalSpending = MutableLiveData<Double>()
+    val totalSpending: LiveData<Double> = _totalSpending
+    
     // Monthly income data for bar chart
     private val _monthlyIncome = MutableLiveData<List<Pair<String, Double>>>()
     val monthlyIncome: LiveData<List<Pair<String, Double>>> = _monthlyIncome
@@ -92,10 +100,14 @@ class ReportPresenter(
         
         // Get all transactions initially for testing
         CoroutineScope(Dispatchers.IO).launch {
-            val allTrans = repository.getAllTransactions().value
-            Log.d(TAG, "All transactions: ${allTrans?.size ?: 0}")
-            allTrans?.forEach { transaction ->
-                Log.d(TAG, "Transaction: id=${transaction.id}, date=${formatDate(transaction.date)}, amount=${transaction.amount}, isIncome=${transaction.isIncome}, category=${transaction.categoryId}")
+            try {
+                val allTrans = repository.getAllTransactionsSync()
+                Log.d(TAG, "All transactions sync: ${allTrans.size}")
+                allTrans.forEach { transaction ->
+                    Log.d(TAG, "Transaction sync: id=${transaction.id}, date=${formatDate(transaction.date)}, amount=${transaction.amount}, isIncome=${transaction.isIncome}, category=${transaction.categoryId}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting all transactions sync", e)
             }
         }
         
@@ -124,8 +136,8 @@ class ReportPresenter(
             updateCategoryExpenseReport(categories, spendingMap)
         }
         
-        // Generate monthly income data
-        generateMonthlyIncomeData()
+        // Generate monthly income data using sync method
+        generateMonthlyIncomeDataSync()
     }
     
     private fun formatDate(date: Date): String {
@@ -164,34 +176,17 @@ class ReportPresenter(
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // First try to get from Room database by date range
-                val transactions = repository.getTransactionsByDateRange(startDate, endDate).value ?: emptyList()
-                Log.d(TAG, "Found ${transactions.size} transactions in date range")
+                // Use direct synchronous call instead of LiveData
+                val transactions = repository.getTransactionsByDateRangeSync(startDate, endDate)
+                Log.d(TAG, "Found ${transactions.size} transactions in date range using sync method")
                 
                 if (transactions.isEmpty()) {
-                    Log.d(TAG, "No transactions found in date range, fetching all transactions")
-                    // Then try to get all transactions and filter manually
-                    val allTransactions = repository.getAllTransactions().value ?: emptyList()
-                    Log.d(TAG, "Total transactions found: ${allTransactions.size}")
-                    
-                    // Filter transactions manually
-                    val filteredTransactions = allTransactions.filter { transaction ->
-                        val transactionDate = transaction.date
-                        val isInRange = transactionDate.time >= startDate.time && transactionDate.time <= endDate.time
-                        Log.d(TAG, "Transaction date: ${formatDate(transactionDate)}, in range: $isInRange")
-                        isInRange
-                    }
-                    
-                    Log.d(TAG, "Filtered transactions count: ${filteredTransactions.size}")
-                    // Switch to main thread before updating LiveData
-                    withContext(Dispatchers.Main) {
-                        _periodTransactions.value = filteredTransactions
-                    }
-                } else {
-                    // Switch to main thread before updating LiveData
-                    withContext(Dispatchers.Main) {
-                        _periodTransactions.value = transactions
-                    }
+                    Log.d(TAG, "No transactions found in date range using sync method")
+                }
+                
+                // Switch to main thread before updating LiveData
+                withContext(Dispatchers.Main) {
+                    _periodTransactions.value = transactions
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching transactions", e)
@@ -229,70 +224,76 @@ class ReportPresenter(
     }
     
     private fun updateCategoryExpenseReport(categories: List<Category>, spendingMap: Map<Long, Double>) {
-        val reportItems = mutableListOf<CategoryReportModel>()
+        val expenseDataList = ArrayList<PieEntry>()
+        var totalSpending = 0.0
+        val colorsArray = ArrayList<Int>()
         
-        Log.d(TAG, "Updating expense report with ${categories.size} categories and spending map of size ${spendingMap.size}")
-        
-        // Get current transactions
-        val transactions = periodTransactions.value ?: listOf()
-        
-        // Check if we have transactions by checking both the transactions list and spending map
-        val hasTransactions = transactions.isNotEmpty() || spendingMap.isNotEmpty()
-        
-        // Only use sample data if we have no transactions at all
-        if (!hasTransactions) {
-            Log.d(TAG, "No transactions available, using sample data")
-            
-            // Add sample data for each category (except Paycheck)
-            categories.forEach { category ->
-                if (category.name.lowercase() != "paycheck") {
-                    val sampleAmount = when (category.id.toInt()) {
-                        1 -> 450.0  // Food
-                        2 -> 320.0  // Transportation
-                        3 -> 980.0  // Housing
-                        4 -> 250.0  // Entertainment
-                        5 -> 180.0  // Utilities
-                        6 -> 120.0  // Healthcare
-                        7 -> 220.0  // Others
-                        else -> (150..600).random().toDouble()
-                    }
-                    
-                    reportItems.add(
-                        CategoryReportModel(
-                            categoryId = category.id,
-                            categoryName = category.name,
-                            amount = sampleAmount,
-                            color = categoryColors[category.id] ?: Color.GRAY
-                        )
-                    )
-                    Log.d(TAG, "Added sample data for category ${category.name}: $sampleAmount")
-                }
+        // First, calculate total actual spending (to prevent division by zero)
+        spendingMap.entries.forEach { entry ->
+            if (entry.key != 8L) { // Skip Paycheck category
+                totalSpending += entry.value
             }
-        } else {
-            // We have real transaction data - use it to create the report
-            Log.d(TAG, "Using real transaction data for report")
-            
-            categories.forEach { category ->
-                // Skip paycheck category for expense pie chart
-                if (category.name.lowercase() != "paycheck") {
-                    val amount = spendingMap[category.id] ?: 0.0
-                    if (amount > 0) {  // Only add categories with actual spending
-                        reportItems.add(
-                            CategoryReportModel(
-                                categoryId = category.id,
-                                categoryName = category.name,
-                                amount = amount,
-                                color = categoryColors[category.id] ?: Color.GRAY
-                            )
-                        )
-                        Log.d(TAG, "Added real data for category ${category.name}: $amount")
-                    }
+        }
+        
+        // Include all categories except Paycheck, even with zero spending
+        categories.forEach { category ->
+            if (category.id != 8L) { // Exclude Paycheck category
+                val amount = spendingMap[category.id] ?: 0.0
+                
+                // Add all categories to the pie chart, even those with zero spending
+                if (totalSpending > 0) {
+                    // If there's actual spending, use the real values
+                    Log.d(TAG, "Adding category ${category.name} with spending: $amount")
+                    // Use a minimum value of 1f for categories with zero spending to make them visible
+                    val displayAmount = if (amount > 0) amount.toFloat() else 1f
+                    expenseDataList.add(PieEntry(displayAmount, category.name))
+                    colorsArray.add(categoryColors[category.id] ?: Color.GRAY)
+                } else {
+                    // If there's no spending at all, show equal parts for all categories
+                    Log.d(TAG, "No spending yet, adding category ${category.name} with minimal value")
+                    expenseDataList.add(PieEntry(1f, category.name))
+                    colorsArray.add(categoryColors[category.id] ?: Color.GRAY)
                 }
             }
         }
         
-        Log.d(TAG, "Report items count: ${reportItems.size}")
-        _categoryExpenseReport.value = reportItems
+        // Only update if there's data to show
+        if (expenseDataList.isNotEmpty()) {
+            val dataSet = PieDataSet(expenseDataList, "Expenses by Category")
+            dataSet.colors = colorsArray
+            dataSet.valueTextSize = 12f
+            dataSet.valueTextColor = Color.WHITE
+            
+            val pieData = PieData(dataSet)
+            // Format values as currency
+            pieData.setValueFormatter(object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return if (totalSpending == 0.0 || value <= 1f && totalSpending > 0) {
+                        "$0" // Show $0 for categories with no spending
+                    } else {
+                        "$${value.toInt()}"
+                    }
+                }
+            })
+            
+            val reportItems = expenseDataList.mapIndexed { index, entry ->
+                // Find the category for this entry
+                val category = categories.find { it.name == entry.label }
+                
+                CategoryReportModel(
+                    categoryId = category?.id ?: 0L,
+                    categoryName = entry.label,
+                    // Store actual spending amount (0.0 for categories with no spending)
+                    amount = spendingMap[category?.id] ?: 0.0,
+                    color = category?.let { categoryColors[it.id] } ?: Color.GRAY
+                )
+            }
+            
+            Log.d(TAG, "Updating category expense report with ${reportItems.size} items, total spending: $totalSpending")
+            _categoryExpenseReport.value = reportItems
+            // Update total spending
+            _totalSpending.value = totalSpending
+        }
     }
     
     fun generateMonthlySpendingTrend() {
@@ -341,7 +342,22 @@ class ReportPresenter(
             val currentMonth = calendar.get(Calendar.MONTH)
             val currentYear = calendar.get(Calendar.YEAR)
             
+            Log.d(TAG, "Generating monthly income data for current month: $currentMonth, year: $currentYear")
+            
             val monthlyData = mutableListOf<Pair<String, Double>>()
+            
+            // First, get all income transactions with categoryId=8 (Paycheck)
+            val allPaychecks = allTransactions.value
+                ?.filter { it.isIncome && it.categoryId == 8L }
+                ?: listOf()
+            
+            Log.d(TAG, "Found ${allPaychecks.size} total paycheck transactions")
+            allPaychecks.forEach { transaction ->
+                Log.d(TAG, "Paycheck: amount=${transaction.amount}, date=${formatDate(transaction.date)}")
+            }
+            
+            // Use sample data only if there are no paycheck transactions at all
+            val useSampleData = allPaychecks.isEmpty()
             
             // Get data for the last 6 months
             for (i in 5 downTo 0) {
@@ -356,23 +372,47 @@ class ReportPresenter(
                 calendar.set(targetYear, targetMonth, calendar.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59)
                 val endDate = calendar.time
                 
-                // Get transactions for the month
-                val monthTransactions = repository.getTransactionsByDateRange(startDate, endDate).value ?: listOf()
+                Log.d(TAG, "Processing income for month[$i]: ${formatDate(startDate)} to ${formatDate(endDate)}")
                 
-                // Calculate total income
-                val totalIncome = monthTransactions
-                    .filter { it.isIncome }
-                    .sumOf { it.amount }
-                
-                // Format month name (e.g., "Jan", "Feb")
-                val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
-                monthlyData.add(Pair("$monthName", totalIncome))
-                
-                Log.d(TAG, "Month: $monthName, Income: $totalIncome")
+                if (!useSampleData) {
+                    // Filter paychecks for this month only
+                    val monthPaychecks = allPaychecks.filter { 
+                        it.date.time >= startDate.time && it.date.time <= endDate.time 
+                    }
+                    
+                    Log.d(TAG, "Found ${monthPaychecks.size} paycheck transactions for ${calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())}")
+                    
+                    // Calculate total income for this month
+                    val totalIncome = monthPaychecks.sumOf { it.amount }
+                    
+                    // Format month name (e.g., "Jan", "Feb")
+                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
+                    monthlyData.add(Pair(monthName, totalIncome))
+                    
+                    Log.d(TAG, "Month: $monthName, Real Income: $totalIncome")
+                } else {
+                    // Generate sample income data as fallback
+                    val sampleIncome = when (i) {
+                        5 -> 1200.0  // Nov
+                        4 -> 1450.0  // Dec
+                        3 -> 1700.0  // Jan
+                        2 -> 1650.0  // Feb
+                        1 -> 2040.0  // Mar
+                        0 -> 2300.0  // Apr (current)
+                        else -> 1500.0
+                    }
+                    
+                    // Format month name (e.g., "Jan", "Feb")
+                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
+                    monthlyData.add(Pair(monthName, sampleIncome))
+                    
+                    Log.d(TAG, "Month: $monthName, Sample Income: $sampleIncome")
+                }
             }
             
             withContext(Dispatchers.Main) {
                 _monthlyIncome.value = monthlyData
+                Log.d(TAG, "Updated monthly income LiveData with ${monthlyData.size} months of data")
             }
         }
     }
@@ -427,7 +467,91 @@ class ReportPresenter(
         _monthlyIncome.value = monthlyIncomeDummy
     }
     
-    // Add this function to force sync data from Firestore before generating reports
+    // Add generateMonthlyIncomeDataSync as a replacement for the current method
+    fun generateMonthlyIncomeDataSync() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val calendar = Calendar.getInstance()
+                val currentMonth = calendar.get(Calendar.MONTH)
+                val currentYear = calendar.get(Calendar.YEAR)
+                
+                Log.d(TAG, "Generating monthly income data (sync) for current month: $currentMonth, year: $currentYear")
+                
+                val monthlyData = mutableListOf<Pair<String, Double>>()
+                
+                // Get all paycheck transactions directly
+                val allPaychecks = repository.getTransactionsByCategoryIdSync(8L, true)
+                
+                Log.d(TAG, "Found ${allPaychecks.size} total paycheck transactions using sync method")
+                allPaychecks.forEach { transaction ->
+                    Log.d(TAG, "Paycheck: amount=${transaction.amount}, date=${formatDate(transaction.date)}")
+                }
+                
+                // Use sample data only if there are no paycheck transactions at all
+                val useSampleData = allPaychecks.isEmpty()
+                
+                // Get data for the last 6 months
+                for (i in 5 downTo 0) {
+                    val targetMonth = (currentMonth - i + 12) % 12
+                    val targetYear = currentYear - if (targetMonth > currentMonth) 1 else 0
+                    
+                    // Set calendar to first day of target month
+                    calendar.set(targetYear, targetMonth, 1, 0, 0, 0)
+                    val startDate = calendar.time
+                    
+                    // Set calendar to last day of target month
+                    calendar.set(targetYear, targetMonth, calendar.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59)
+                    val endDate = calendar.time
+                    
+                    Log.d(TAG, "Processing income for month[$i]: ${formatDate(startDate)} to ${formatDate(endDate)}")
+                    
+                    if (!useSampleData) {
+                        // Filter paychecks for this month manually
+                        val monthPaychecks = allPaychecks.filter { 
+                            it.date.time >= startDate.time && it.date.time <= endDate.time 
+                        }
+                        
+                        Log.d(TAG, "Found ${monthPaychecks.size} paycheck transactions for ${calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())}")
+                        
+                        // Calculate total income for this month
+                        val totalIncome = monthPaychecks.sumOf { it.amount }
+                        
+                        // Format month name (e.g., "Jan", "Feb")
+                        val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()) ?: ""
+                        monthlyData.add(Pair(monthName, totalIncome))
+                        
+                        Log.d(TAG, "Month: $monthName, Real Income: $totalIncome")
+                    } else {
+                        // Generate sample income data as fallback
+                        val sampleIncome = when (i) {
+                            5 -> 1200.0  // Nov
+                            4 -> 1450.0  // Dec
+                            3 -> 1700.0  // Jan
+                            2 -> 1650.0  // Feb
+                            1 -> 2040.0  // Mar
+                            0 -> 2300.0  // Apr (current)
+                            else -> 1500.0
+                        }
+                        
+                        // Format month name (e.g., "Jan", "Feb")
+                        val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()) ?: ""
+                        monthlyData.add(Pair(monthName, sampleIncome))
+                        
+                        Log.d(TAG, "Month: $monthName, Sample Income: $sampleIncome")
+                    }
+                }
+                
+                withContext(Dispatchers.Main) {
+                    _monthlyIncome.value = monthlyData
+                    Log.d(TAG, "Updated monthly income LiveData with ${monthlyData.size} months of data")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error generating monthly income data", e)
+            }
+        }
+    }
+    
+    // Replace the existing refreshDataFromFirestore to use the new sync methods
     fun refreshDataFromFirestore() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -451,8 +575,8 @@ class ReportPresenter(
                         setCurrentMonthDateRange()
                     }
                     
-                    // Refresh other data as well
-                    generateMonthlyIncomeData()
+                    // Refresh other data using new sync methods
+                    generateMonthlyIncomeDataSync()
                     generateMonthlySpendingTrend()
                 }
                 
