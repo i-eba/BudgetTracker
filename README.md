@@ -89,5 +89,5 @@ The app is currently functional with all core features implemented:
 
 ## Acknowledgements
 
-- This app was created as a learning project
+- This app was created as Android learning project
 - Icons are from Google's Material Design icon set
