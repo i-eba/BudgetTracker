@@ -325,25 +325,28 @@ class ReportFragment : Fragment() {
             updateBarChart(monthlyIncome)
         }
 
-        // Observe export result
-        presenter.exportResult.observe(viewLifecycleOwner) { result ->
-            // Reset button state
-            binding.btnExportData.isEnabled = true
-            binding.btnExportData.text = "Export Data to CSV"
-            
-            result.fold(
-                onSuccess = { file ->
-                    shareExportedFile(file)
-                    Toast.makeText(context, "Export successful!", Toast.LENGTH_SHORT).show()
-                },
-                onFailure = { error ->
-                    Toast.makeText(
-                        context,
-                        "Export failed: ${error.localizedMessage}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            )
+        // Observe export result as a one-time event
+        presenter.exportResult.observe(viewLifecycleOwner) { event ->
+            // Only process the export if it hasn't been handled yet
+            event.getContentIfNotHandled()?.let { result ->
+                // Reset button state
+                binding.btnExportData.isEnabled = true
+                binding.btnExportData.text = "Export Data to CSV"
+                
+                result.fold(
+                    onSuccess = { file ->
+                        shareExportedFile(file)
+                        Toast.makeText(context, "Export successful!", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { error ->
+                        Toast.makeText(
+                            context,
+                            "Export failed: ${error.localizedMessage}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
         }
     }
 
@@ -366,9 +369,9 @@ class ReportFragment : Fragment() {
     }
     
     private fun updatePieChart(categories: List<CategoryReportModel>) {
-        // Filter out Paycheck category and keep only categories with amounts > 0
+        // Filter out only the Paycheck category, but include others even if they have zero amount
         val filteredCategories = categories
-            .filter { it.categoryName != "Paycheck" && it.amount > 0 }
+            .filter { it.categoryName != "Paycheck" }
             .sortedWith(compareByDescending<CategoryReportModel> { 
                 // If the category is "Others", give it lowest priority 
                 if (it.categoryName == "Others") -1.0 else it.amount 
@@ -396,13 +399,22 @@ class ReportFragment : Fragment() {
                 Color.rgb(84, 110, 122)    // Blue Grey
             )
 
-            // Add entries for categories with non-zero amounts
+            // Add entries for all categories, even those with zero amounts
             filteredCategories.forEachIndexed { index, category ->
                 val categoryName = category.categoryName
                 val amount = category.amount
-                val percentageText = String.format("%.1f%%", (amount / totalAmount) * 100)
+                
+                // For zero amount categories, use a minimal value to make them visible on the chart
+                val chartAmount = if (amount > 0) amount else totalAmount * 0.01
+                
+                val percentageText = if (amount > 0) {
+                    String.format("%.1f%%", (amount / totalAmount) * 100)
+                } else {
+                    "0.0%"
+                }
+                
                 // Keep category name for the legend
-                entries.add(PieEntry(amount.toFloat(), categoryName))
+                entries.add(PieEntry(chartAmount.toFloat(), categoryName))
                 
                 // Use either the predefined color from the model or from our palette
                 val color = if (category.color != Color.GRAY) category.color else colorPalette[index % colorPalette.size]

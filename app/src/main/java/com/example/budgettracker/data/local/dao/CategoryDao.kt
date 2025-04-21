@@ -31,4 +31,8 @@ interface CategoryDao {
     
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun getCategoryCount(): Int
+    
+    // Synchronous version of getAllCategories
+    @Query("SELECT * FROM categories ORDER BY name ASC")
+    suspend fun getAllCategoriesSync(): List<Category>
 } 

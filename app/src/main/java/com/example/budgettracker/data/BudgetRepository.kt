@@ -376,16 +376,13 @@ class BudgetRepository(
     }
 
     suspend fun getAllTransactionsSync(): List<Transaction> {
-        return withContext(Dispatchers.IO) {
-            val userId = currentUserId ?: ""
-            try {
-                val transactions = database.transactionDao().getAllTransactionsSync(userId)
-                Log.d("BudgetRepository", "Retrieved ${transactions.size} transactions synchronously")
-                transactions
-            } catch (e: Exception) {
-                Log.e("BudgetRepository", "Error getting all transactions sync: ${e.message}")
-                emptyList() 
-            }
-        }
+        return currentUserId?.let {
+            database.transactionDao().getAllTransactionsSync(it)
+        } ?: database.transactionDao().getAllTransactionsSync("")
+    }
+
+    // Synchronous method to get all categories
+    suspend fun getAllCategoriesSync(): List<Category> {
+        return database.categoryDao().getAllCategoriesSync()
     }
 } 

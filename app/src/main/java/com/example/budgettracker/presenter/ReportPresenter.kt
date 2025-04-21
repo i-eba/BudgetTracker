@@ -13,6 +13,7 @@ import com.example.budgettracker.data.local.entities.Transaction
 import com.example.budgettracker.model.CategoryReportModel
 import com.example.budgettracker.model.MonthlyReportModel
 import com.example.budgettracker.util.CSVExporter
+import com.example.budgettracker.util.Event
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
@@ -76,9 +77,9 @@ class ReportPresenter(
     private val _monthlySpending = MutableLiveData<List<Pair<String, Double>>>()
     val monthlySpending: LiveData<List<Pair<String, Double>>> = _monthlySpending
     
-    // Export result
-    private val _exportResult = MutableLiveData<Result<File>>()
-    val exportResult: LiveData<Result<File>> = _exportResult
+    // Export result wrapped in Event to prevent multiple handling
+    private val _exportResult = MutableLiveData<Event<Result<File>>>()
+    val exportResult: LiveData<Event<Result<File>>> = _exportResult
     
     // Category colors
     private val categoryColors = mapOf(
@@ -106,8 +107,15 @@ class ReportPresenter(
                 allTrans.forEach { transaction ->
                     Log.d(TAG, "Transaction sync: id=${transaction.id}, date=${formatDate(transaction.date)}, amount=${transaction.amount}, isIncome=${transaction.isIncome}, category=${transaction.categoryId}")
                 }
+                
+                // Also check all categories
+                val allCats = repository.getAllCategoriesSync()
+                Log.d(TAG, "All categories sync: ${allCats.size}")
+                allCats.forEach { category ->
+                    Log.d(TAG, "Category sync: id=${category.id}, name=${category.name}")
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error getting all transactions sync", e)
+                Log.e(TAG, "Error getting all data sync", e)
             }
         }
         
@@ -259,7 +267,7 @@ class ReportPresenter(
         
         // Only update if there's data to show
         if (expenseDataList.isNotEmpty()) {
-            val dataSet = PieDataSet(expenseDataList, "Expenses by Category")
+            val dataSet = PieDataSet(expenseDataList, "Current Month Expenses")
             dataSet.colors = colorsArray
             dataSet.valueTextSize = 12f
             dataSet.valueTextColor = Color.WHITE
@@ -432,9 +440,9 @@ class ReportPresenter(
                 val categoryMap = categories.associateBy { it.id }
                 
                 val file = csvExporter.exportTransactions(context, transactions, categoryMap)
-                _exportResult.postValue(Result.success(file))
+                _exportResult.postValue(Event(Result.success(file)))
             } catch (e: Exception) {
-                _exportResult.postValue(Result.failure(e))
+                _exportResult.postValue(Event(Result.failure(e)))
             }
         }
     }

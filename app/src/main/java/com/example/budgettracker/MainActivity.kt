@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         
         // Generate test data for missing categories
         authManager.getCurrentUserId()?.let { userId ->
-            testDataGenerator.addTestTransactionsForMissingCategories(userId)
+            testDataGenerator.addTestTransactionsForMissingCategories(this, userId)
         }
         
         setupBottomNavigation()
