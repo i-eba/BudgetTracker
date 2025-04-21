@@ -15,6 +15,7 @@ import com.example.budgettracker.presenter.BudgetPresenter
 import com.example.budgettracker.presenter.ReportPresenter
 import com.example.budgettracker.presenter.TransactionPresenter
 import com.example.budgettracker.util.CSVExporter
+import com.example.budgettracker.util.TestDataGenerator
 import com.example.budgettracker.view.AuthActivity
 import com.example.budgettracker.view.fragments.BudgetFragment
 import com.example.budgettracker.view.fragments.ProfileFragment
@@ -30,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var transactionPresenter: TransactionPresenter
     private lateinit var budgetPresenter: BudgetPresenter
     private lateinit var reportPresenter: ReportPresenter
+    private lateinit var testDataGenerator: TestDataGenerator
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +46,9 @@ class MainActivity : AppCompatActivity() {
         
         // Initialize repository
         repository = BudgetRepository(database, firestoreManager, authManager)
+        
+        // Initialize test data generator
+        testDataGenerator = TestDataGenerator(repository)
         
         // Ensure default categories are created
         repository.ensureDefaultCategories()
@@ -64,6 +69,11 @@ class MainActivity : AppCompatActivity() {
         
         // Sync data from Firestore
         syncDataFromFirestore()
+        
+        // Generate test data for missing categories
+        authManager.getCurrentUserId()?.let { userId ->
+            testDataGenerator.addTestTransactionsForMissingCategories(userId)
+        }
         
         setupBottomNavigation()
         
