@@ -33,9 +33,31 @@ BudgetTracker is a minimalist, user-friendly personal budgeting app for Android 
 
 The app follows the MVP (Model-View-Presenter) architecture pattern:
 
-- **Model**: Data classes and repository in `data` package
-- **View**: UI components in `view` package
-- **Presenter**: Business logic in `presenter` package
+```
+BudgetTracker/
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/example/budgettracker/
+│   │   │   │   ├── model/                    # Data models
+│   │   │   │   ├── presenter/                # Presenter classes
+│   │   │   │   │   ├── AuthPresenter.kt
+│   │   │   │   │   ├── TransactionPresenter.kt
+│   │   │   │   │   ├── BudgetPresenter.kt
+│   │   │   │   │   └── ReportPresenter.kt
+│   │   │   │   ├── view/                     # UI components
+│   │   │   │   │   ├── fragments/            # Fragment implementations
+│   │   │   │   │   ├── adapters/             # RecyclerView adapters
+│   │   │   │   │   └── AuthActivity.kt       # Auth screens
+│   │   │   │   ├── data/                     # Data handling
+│   │   │   │   │   ├── local/                # Room Database
+│   │   │   │   │   │   ├── entities/         # Database entities
+│   │   │   │   │   │   └── dao/              # Data Access Objects
+│   │   │   │   │   └── remote/               # Firebase integration
+│   │   │   │   ├── util/                     # Helper utilities
+│   │   │   │   ├── MainActivity.kt           # Main app container
+│   │   │   │   └── App.kt                    # Application class
+```
 
 ## Libraries Used
 
@@ -43,8 +65,10 @@ The app follows the MVP (Model-View-Presenter) architecture pattern:
 - **Firebase Firestore**: For cloud data storage
 - **Room**: For local database storage
 - **MPAndroidChart**: For visualization of financial data
-- **Jetpack Compose**: For modern UI components
-- **Android Architecture Components**: For lifecycle-aware components
+- **ViewBinding**: For view interactions
+- **Coroutines**: For asynchronous operations
+- **Glide**: For image loading
+- **Material Components**: For modern UI elements
 
 ## Usage
 
@@ -54,13 +78,16 @@ The app follows the MVP (Model-View-Presenter) architecture pattern:
 4. **View Reports**: Check your spending patterns and financial health on the Reports screen
 5. **Export Data**: Export your financial data to CSV from the Reports screen
 
+## Project Status
+
+The app is currently functional with all core features implemented:
+- User authentication
+- Transaction management
+- Budget tracking
+- Financial reporting
+- Data synchronization
+
 ## Acknowledgements
 
-- This app was created as a learning project.
+- This app was created as a learning project
 - Icons are from Google's Material Design icon set
-
-Retrieved transaction: Transaction(id=19, amount=200.0, description=Fun, date=Fri Apr 18 16:17:33 PDT 2025, categoryId=4, isIncome=false, userId=ZpHyEgoEz7PABM7o4f2AeXJytyx2)
-Retrieved transaction: Transaction(id=18, amount=3400.0, description=Payme, date=Fri Apr 18 14:36:18 PDT 2025, categoryId=8, isIncome=true, userId=ZpHyEgoEz7PABM7o4f2AeXJytyx2)
-
-ReportPresenter: Calculating spending for 0 expense transactions out of 0 total
-ReportPresenter: No real spending data, creating sample data from categories

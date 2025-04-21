@@ -25,9 +25,12 @@ class CSVExporter {
         
         // Create CSV file
         FileWriter(file).use { fileWriter ->
-            CSVPrinter(fileWriter, CSVFormat.DEFAULT.withHeader(
-                "Date", "Category", "Description", "Amount", "Type"
-            )).use { csvPrinter ->
+            // Use builder pattern instead of deprecated withHeader method
+            val csvFormat = CSVFormat.DEFAULT.builder()
+                .setHeader("Date", "Category", "Description", "Amount", "Type")
+                .build()
+                
+            CSVPrinter(fileWriter, csvFormat).use { csvPrinter ->
                 transactions.forEach { transaction ->
                     val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(transaction.date)
                     val categoryName = categories[transaction.categoryId]?.name ?: "Unknown"

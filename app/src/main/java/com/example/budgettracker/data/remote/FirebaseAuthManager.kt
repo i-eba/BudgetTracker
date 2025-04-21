@@ -110,8 +110,8 @@ class FirebaseAuthManager {
         // Re-authenticate user first
         firebaseAuth.signInWithEmailAndPassword(user.email ?: "", password)
             .addOnSuccessListener {
-                // Update email
-                user.updateEmail(newEmail)
+                // Update email using the non-deprecated method
+                user.verifyBeforeUpdateEmail(newEmail)
                     .addOnSuccessListener {
                         // Update email in Firestore
                         val userId = user.uid

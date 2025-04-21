@@ -394,7 +394,7 @@ class ReportPresenter(
                     val totalIncome = monthPaychecks.sumOf { it.amount }
                     
                     // Format month name (e.g., "Jan", "Feb")
-                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
+                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()) ?: ""
                     monthlyData.add(Pair(monthName, totalIncome))
                     
                     Log.d(TAG, "Month: $monthName, Real Income: $totalIncome")
@@ -411,7 +411,7 @@ class ReportPresenter(
                     }
                     
                     // Format month name (e.g., "Jan", "Feb")
-                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
+                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()) ?: ""
                     monthlyData.add(Pair(monthName, sampleIncome))
                     
                     Log.d(TAG, "Month: $monthName, Sample Income: $sampleIncome")
