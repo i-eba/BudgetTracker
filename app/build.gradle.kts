@@ -87,6 +87,13 @@ dependencies {
     // ViewPager2 for tab navigation
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     
+    // Glide for image loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    kapt("com.github.bumptech.glide:compiler:4.16.0")
+    
+    // CircleImageView for circular avatars
+    implementation("de.hdodenhof:circleimageview:3.1.0")
+    
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
