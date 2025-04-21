@@ -14,3 +14,9 @@ local.properties
 
 # Kotlin/Java class files
 *.class
+
+# Kotlin compiler temp files
+.kotlin/
+
+# VS Code settings
+.vscode/
