@@ -91,3 +91,11 @@ The app is currently functional with all core features implemented:
 
 - This app was created for Android programmning learning project
 - Icons are from Google's Material Design icon set
+
+## App UI
+<img width="349" alt="image" src="https://github.com/user-attachments/assets/a9331de2-b28e-46f8-986d-ce0c3423c742" /> <img width="347" alt="image" src="https://github.com/user-attachments/assets/66c44291-724e-4db6-8697-5e1d1954c340" /> 
+<img width="341" alt="image" src="https://github.com/user-attachments/assets/6e29a2d3-a7f7-4051-99bd-934b283099b0" /> <img width="345" alt="image" src="https://github.com/user-attachments/assets/2127a68e-8aa3-4cd3-bdb1-c7796191922b" />
+
+
+
+
